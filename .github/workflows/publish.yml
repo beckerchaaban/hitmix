@@ -3,34 +3,34 @@ name: Publish to npm
 on:
   release:
     types: [published]
-  workflow_dispatch:
+  workflow_dispatch: # Tillåter manuell start via Actions-fliken på GitHub
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      # 1. Hämta koden
+      # 1. Hämta källkoden från GitHub
       - uses: actions/checkout@v4
 
-      # 2. Sätt upp Bun
+      # 2. Installera och konfigurera Bun
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      # 3. Sätt upp Node (Ta bort "registry-url" härifrån, den flyttas till npm publish)
+      # 3. Sätt upp Node och konfigurera npm-registryt
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          registry-url: 'https://npmjs.org'
+          cache: '' # 👈 Viktigt: Stoppar Node från att leta efter package-lock.json
 
-      # 4. Installera beroenden med Bun
+      # 4. Installera dina projektberoenden med Bun
       - run: bun install --frozen-lockfile
 
-      # 5. Bygg projektet (Ta bort denna rad om du inte har ett build-script)
+      # 5. Bygg projektet (Ta bort denna rad om du inte har ett build-script i package.json)
       - run: bun run build
 
-      # 6. Publicera till npm (Vi sätter registry direkt i kommandot för säkerhets skull)
-      - run: |
-          npm config set //registry.npmjs.org/:_authToken $NPM_TOKEN
-          npm publish --registry=https://registry.npmjs.org
+      # 6. Publicera paketet till npm
+      - run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # 👈 Se till att din GitHub Secret heter exakt NPM_TOKEN
