@@ -1,6 +1,6 @@
 {
   "name": "hitmix",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "type": "module",
   "description": "A tiny Bun + htmx + Handlebars web framework.",
   "keywords": [
@@ -13,13 +13,13 @@
   ],
   "license": "MIT",
   "author": "beckerchaaban",
-  "homepage": "https://dev.azure.com/beckerch/Hitmix/_git/Hitmix",
+  "homepage": "https://hitmix.dev",
   "repository": {
     "type": "git",
-    "url": "https://dev.azure.com/beckerch/Hitmix/_git/Hitmix"
+    "url": "https://github.com/beckerchaaban/hitmix"
   },
   "bugs": {
-    "url": "https://dev.azure.com/beckerch/Hitmix/_git/Hitmix"
+    "url": "https://github.com/beckerchaaban/hitmix"
   },
   "engines": {
     "bun": ">=1.0.0"
