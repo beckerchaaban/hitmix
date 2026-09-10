@@ -1,0 +1,55 @@
+{
+  "name": "hitmix",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A tiny Bun + htmx + Handlebars web framework.",
+  "keywords": [
+    "bun",
+    "htmx",
+    "handlebars",
+    "framework",
+    "ssr",
+    "server-rendered"
+  ],
+  "license": "MIT",
+  "author": "beckerchaaban",
+  "homepage": "https://dev.azure.com/beckerch/Hitmix/_git/Hitmix",
+  "repository": {
+    "type": "git",
+    "url": "https://dev.azure.com/beckerch/Hitmix/_git/Hitmix"
+  },
+  "bugs": {
+    "url": "https://dev.azure.com/beckerch/Hitmix/_git/Hitmix"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./jsx-runtime": "./src/jsx-runtime/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "dev": "bun run --filter='*' dev:server dev:css",
+    "dev:server": "bun --watch index.ts",
+    "dev:css": "bunx @tailwindcss/cli -i ./app/styles/main.scss -o ./public/styles/output.css --watch",
+    "build": "bun build ./index.ts --outfile=./dist/bootstrap.js --target node",
+    "postbuild": "bun ./node_modules/typescript/bin/tsc"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "@types/bun": "latest",
+    "sass": "^1.104.0",
+    "tailwindcss": "^4.3.3"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.9",
+    "htmx.org": "^2.0.10",
+    "linkedom": "^0.18.13"
+  }
+}
