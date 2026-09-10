@@ -1,33 +1,40 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
-
+# GitHub Actions-arbetsflöde för att publicera till npm med Bun
 name: Node.js Package
 
 on:
   release:
     types: [created]
+  workflow_dispatch: # Gör att du även kan starta flödet manuellt via GitHub-gränssnittet
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
     steps:
+      # 1. Hämta källkoden från GitHub
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npm test
 
-  publish-npm:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      # 2. Installera och konfigurera Bun
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # 3. Sätt upp Node och konfigurera npm-registryt
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          registry-url: https://registry.npmjs.org/
-      - run: npm ci
+          registry-url: https://npmjs.org
+          cache: '' # Stoppar Node från att leta efter en package-lock.json
+
+      # 4. Installera projektberoenden med Bun
+      - run: bun install --frozen-lockfile
+
+      # 5. Kör dina tester med Bun
+      - run: bun test
+
+      # 6. Bygg projektet (Ta bort denna rad om du inte har ett build-script i package.json)
+      - run: bun run build
+
+      # 7. Publicera paketet till npm
       - run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
