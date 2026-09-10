@@ -1,3 +1,4 @@
+/// <reference path="../types/urlpattern.d.ts" />
 import { join, basename } from "path";
 import { composeHtmlLayout } from "../templating/layout-template";
 export interface RouterResult {
