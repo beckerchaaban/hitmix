@@ -100,11 +100,11 @@ export async function router(
     const rootSegments = pathname.split("/").filter(Boolean);
     const primaryFolder = rootSegments[0] || "";
 
-    const targetDir = join(pagesRoot, primaryFolder);
-    scriptFilePath = join(targetDir, `${primaryFolder}.tsx`);
-    templateFilePath = join(targetDir, `${primaryFolder}.htmx`);
-
-    if (!(await Bun.file(scriptFilePath).exists())) {
+    if (rootSegments.length === 1) {
+      const targetDir = join(pagesRoot, primaryFolder);
+      scriptFilePath = join(targetDir, `${primaryFolder}.tsx`);
+      templateFilePath = join(targetDir, `${primaryFolder}.htmx`);
+    } else {
       const folderName = basename(pathname);
       const fallbackDir = join(pagesRoot, pathname);
       templateFilePath = join(fallbackDir, `${folderName}.htmx`);
