@@ -29,7 +29,8 @@
     "./jsx-runtime": "./src/jsx-runtime/index.ts"
   },
   "files": [
-    "src"
+    "src",
+    "components"
   ],
   "scripts": {
     "dev": "bun run --filter='*' dev:server dev:css",
