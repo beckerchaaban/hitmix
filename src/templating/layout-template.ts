@@ -1,4 +1,4 @@
-import { join } from "path";
+import { dirname, join } from "path";
 import { parseHTML } from "linkedom";
 import Handlebars from "handlebars";
 
@@ -142,27 +142,50 @@ function parseTagAttributes(attrString: string): Record<string, string> {
   return attrs;
 }
 
+// Walks up from `process.cwd()` checking each ancestor's `node_modules`,
+// mirroring Node's module resolution so this still works when node_modules
+// is hoisted above the app root (e.g. when hitmix is nested inside another
+// package's workspace) rather than only checking the cwd directly.
+async function resolveFromNodeModules(
+  componentPath: string,
+): Promise<string | null> {
+  let dir = process.cwd();
+
+  while (true) {
+    const candidate = join(dir, "node_modules", `${componentPath}.htmx`);
+
+    if (await Bun.file(candidate).exists()) {
+      return candidate;
+    }
+
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
 async function resolveImportSource(
   srcPath: string,
   appPath: string,
 ): Promise<string | null> {
-  let componentPath = srcPath;
+  let fileTarget: string | null;
 
-  if (componentPath.startsWith("@/")) {
-    componentPath = componentPath.replace("@/", `${appPath}/`);
+  if (srcPath.startsWith("@/")) {
+    const componentPath = srcPath.replace("@/", `${appPath}/`);
+    fileTarget = join(process.cwd(), `${componentPath}.htmx`);
   } else {
-  componentPath = join('node_modules', componentPath);
-      console.log('component path',componentPath)
+    // Anything not rooted at "@/" is treated as a package import, e.g.
+    // "hitmix/components/button" or "other-package/components/button"
+    // resolves to "<node_modules>/hitmix/components/button.htmx".
+    fileTarget = await resolveFromNodeModules(srcPath);
   }
 
-  let fileTarget = join(process.cwd(), `${componentPath}.htmx`);
-  let componentFile = Bun.file(fileTarget);
-
-  if (await componentFile.exists()) {
-    return await componentFile.text();
+  if (!fileTarget) {
+    return null;
   }
 
-  return null;
+  const componentFile = Bun.file(fileTarget);
+  return (await componentFile.exists()) ? await componentFile.text() : null;
 }
 
 async function processImportElements(
