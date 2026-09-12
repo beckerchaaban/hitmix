@@ -138,8 +138,6 @@ export async function router(
       const dataModule = await import(activeScriptPath);
       const endpoints = dataModule.default;
       let handler: Function | null = null;
-      const rootSegments = pathname.split("/").filter(Boolean);
-      const primaryFolder = rootSegments[0] || "";
 
       if (Array.isArray(endpoints)) {
         for (const endpoint of endpoints) {
@@ -152,10 +150,10 @@ export async function router(
                 handler = endpoint;
                 break;
               }
-            } else if (
-              pathname === `/${primaryFolder}` ||
-              (isRoot && primaryFolder === "")
-            ) {
+            } else {
+              // No explicit route: this script was already resolved
+              // specifically for `pathname` by the file-based routing
+              // above, so it always applies.
               handler = endpoint;
               break;
             }
