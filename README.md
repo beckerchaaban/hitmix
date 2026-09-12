@@ -172,6 +172,7 @@ Then follow "Getting started" above in a scratch directory, but run `bun add lin
 - `app/pages` — file-based routes. `app/pages/<folder>/<folder>.htmx` is the template, `<folder>.tsx` (exporting `page([get(...), post(...)])`) is the optional handler.
 - `app/pages/layout.htmx` — the root layout, wrapping every page's `<hx-content/>` slot.
 - `app/pages/index.htmx` — the root HTML shell, wrapping the `<hx-root/>` slot.
+- `app/pages/**/partialLayout.htmx` — an optional lighter wrapper for a folder (and its sub-paths). It's only used for htmx swap requests (a plain `hx-get`/`hx-post`, not `hx-boost`) navigating within that folder — the response is just this wrapper (with its own `<hx-content/>` slot) around the page, skipping the full `layout.htmx` chain and the `index.htmx` root shell entirely, since neither of those needs to change for a same-section navigation. A full page load, or an `hx-boost` navigation, always gets the full layout as before.
 - `app/components` — reusable `.htmx` fragments, pulled into a page or layout with `<import src="@/components/x" as="x"/>` then used as `<x />`. Props passed on the usage tag (including `hx-*` attributes) are available inside the component via `{{propName}}`.
 - `src` — the framework itself, published as the `hitmix` package: `routing/` (router + route helpers), `templating/` (the `.htmx` + Handlebars compose pipeline), `jsx-runtime/` (lets `.tsx` handlers return JSX strings). A project imports its public API with a plain `import ... from "hitmix"`.
 

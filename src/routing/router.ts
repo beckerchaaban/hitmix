@@ -1,12 +1,45 @@
 /// <reference path="../types/urlpattern.d.ts" />
-import { join, basename } from "path";
+import { join, basename, dirname } from "path";
 import { composeHtmlLayout } from "../templating/layout-template";
 export interface RouterResult {
   response: Response;
   includedFiles: string[];
 }
 
-export async function router(req: Request): Promise<RouterResult | null> {
+async function findNearestFile(
+  startDir: string,
+  pagesRoot: string,
+  fileName: string,
+): Promise<string> {
+  let dir = startDir;
+
+  while (true) {
+    const candidate = join(dir, fileName);
+    if (await Bun.file(candidate).exists()) {
+      return candidate;
+    }
+    if (dir === pagesRoot) {
+      return "";
+    }
+    dir = dirname(dir);
+  }
+}
+
+function findNearestLayout(startDir: string, pagesRoot: string) {
+  return findNearestFile(startDir, pagesRoot, "layout.htmx");
+}
+
+// Mirrors findNearestLayout, but for `partialLayout.htmx`: the wrapper used
+// instead of the full layout+root-shell chain when an htmx request is
+// navigating within this directory's own path or one of its sub-paths.
+function findNearestPartialLayout(startDir: string, pagesRoot: string) {
+  return findNearestFile(startDir, pagesRoot, "partialLayout.htmx");
+}
+
+export async function router(
+  req: Request,
+  appPath: string,
+): Promise<RouterResult | null> {
   const url = new URL(req.url);
   let pathname = url.pathname;
 
@@ -19,48 +52,81 @@ export async function router(req: Request): Promise<RouterResult | null> {
   let templateFilePath = "";
   let scriptFilePath = "";
   let layoutFilePath = "";
+  let partialLayoutFilePath = "";
   let data: any = null;
   let params: Record<string, string | undefined> = {};
-  
+
   const isRoot = pathname === "/" || pathname === "";
+  const pagesRoot = join(process.cwd(), appPath, "pages");
+  const rootLayoutPath = join(pagesRoot, "layout.htmx");
+
+  // htmx sends `HX-Request` on every request it issues, and additionally
+  // `HX-Boosted` for hx-boost navigation, which still expects a full document
+  // (htmx itself extracts <title>/<body> from it). A plain hx-get/hx-post
+  // swap, though, only wants the fragment for its target — that's the case
+  // partialLayout.htmx exists for.
+  const isHtmxPartialRequest =
+    req.headers.get("HX-Request") === "true" &&
+    req.headers.get("HX-Boosted") !== "true";
 
   if (isRoot) {
-    const targetDir = join(process.cwd(), "app", "pages", "home");
+    const targetDir = join(pagesRoot, "home");
     templateFilePath = join(targetDir, "home.htmx");
     scriptFilePath = join(targetDir, "home.tsx");
 
-    const localLayoutPath = join(targetDir, "layout.htmx");
-    const rootLayoutPath = join(process.cwd(), "app", "pages", "layout.htmx");
-    if (await Bun.file(localLayoutPath).exists()) {
-      layoutFilePath = localLayoutPath;
-      includedFiles.push("home:layout.htmx");
-    } else if (await Bun.file(rootLayoutPath).exists()) {
-      layoutFilePath = rootLayoutPath;
+    const nearestLayoutPath = await findNearestLayout(targetDir, pagesRoot);
+    if (nearestLayoutPath) {
+      layoutFilePath = nearestLayoutPath;
+      if (nearestLayoutPath !== rootLayoutPath) {
+        includedFiles.push("home:layout.htmx");
+      }
+    }
+
+    if (isHtmxPartialRequest) {
+      partialLayoutFilePath = await findNearestPartialLayout(
+        targetDir,
+        pagesRoot,
+      );
+      if (partialLayoutFilePath) {
+        includedFiles.push("home:partialLayout.htmx");
+      }
     }
 
     includedFiles.push("home.htmx");
   } else {
     const rootSegments = pathname.split("/").filter(Boolean);
     const primaryFolder = rootSegments[0] || "";
-    
-    const targetDir = join(process.cwd(), "app", "pages", primaryFolder);
+
+    const targetDir = join(pagesRoot, primaryFolder);
     scriptFilePath = join(targetDir, `${primaryFolder}.tsx`);
     templateFilePath = join(targetDir, `${primaryFolder}.htmx`);
 
-    if (!await Bun.file(scriptFilePath).exists()) {
+    if (!(await Bun.file(scriptFilePath).exists())) {
       const folderName = basename(pathname);
-      const fallbackDir = join(process.cwd(), "app", "pages", pathname);
+      const fallbackDir = join(pagesRoot, pathname);
       templateFilePath = join(fallbackDir, `${folderName}.htmx`);
       scriptFilePath = join(fallbackDir, `${folderName}.tsx`);
     }
 
-    const localLayoutPath = join(process.cwd(), "app", "pages", primaryFolder, "layout.htmx");
-    const rootLayoutPath = join(process.cwd(), "app", "pages", "layout.htmx");
-    if (await Bun.file(localLayoutPath).exists()) {
-      layoutFilePath = localLayoutPath;
-      includedFiles.push("layout.htmx");
-    } else if (await Bun.file(rootLayoutPath).exists()) {
-      layoutFilePath = rootLayoutPath;
+    const nearestLayoutPath = await findNearestLayout(
+      dirname(templateFilePath),
+      pagesRoot,
+    );
+    if (nearestLayoutPath) {
+      layoutFilePath = nearestLayoutPath;
+      if (nearestLayoutPath !== rootLayoutPath) {
+        includedFiles.push("layout.htmx");
+      }
+    }
+
+    if (isHtmxPartialRequest) {
+      partialLayoutFilePath = await findNearestPartialLayout(
+        dirname(templateFilePath),
+        pagesRoot,
+      );
+      if (partialLayoutFilePath) {
+        includedFiles.push("partialLayout.htmx");
+      }
     }
 
     if (await Bun.file(templateFilePath).exists()) {
@@ -100,7 +166,10 @@ export async function router(req: Request): Promise<RouterResult | null> {
                 handler = endpoint;
                 break;
               }
-            } else if (pathname === `/${primaryFolder}` || (isRoot && primaryFolder === "")) {
+            } else if (
+              pathname === `/${primaryFolder}` ||
+              (isRoot && primaryFolder === "")
+            ) {
               handler = endpoint;
               break;
             }
@@ -114,7 +183,12 @@ export async function router(req: Request): Promise<RouterResult | null> {
         const query = Object.fromEntries(url.searchParams.entries());
         let body = {};
 
-        if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH" || req.method === "DELETE") {
+        if (
+          req.method === "POST" ||
+          req.method === "PUT" ||
+          req.method === "PATCH" ||
+          req.method === "DELETE"
+        ) {
           const contentType = req.headers.get("content-type") || "";
           if (contentType.includes("application/x-www-form-urlencoded")) {
             const rawText = await req.text();
@@ -125,19 +199,27 @@ export async function router(req: Request): Promise<RouterResult | null> {
 
         let statusCode = 200;
         const customHeaders: Record<string, string> = {};
-        
+
         const res = {
           trigger(events: Record<string, any>) {
             const json = JSON.stringify(events);
-            customHeaders["HX-Trigger"] = Buffer.from(json, "utf-8").toString("binary");
+            customHeaders["HX-Trigger"] = Buffer.from(json, "utf-8").toString(
+              "binary",
+            );
           },
           triggerAfterReceive(events: Record<string, any>) {
             const json = JSON.stringify(events);
-            customHeaders["HX-Trigger-After-Receive"] = Buffer.from(json, "utf-8").toString("binary");
+            customHeaders["HX-Trigger-After-Receive"] = Buffer.from(
+              json,
+              "utf-8",
+            ).toString("binary");
           },
           triggerAfterSwap(events: Record<string, any>) {
             const json = JSON.stringify(events);
-            customHeaders["HX-Trigger-After-Swap"] = Buffer.from(json, "utf-8").toString("binary");
+            customHeaders["HX-Trigger-After-Swap"] = Buffer.from(
+              json,
+              "utf-8",
+            ).toString("binary");
           },
           header(key: string, value: string) {
             customHeaders[key] = Buffer.from(value, "utf-8").toString("binary");
@@ -157,7 +239,7 @@ export async function router(req: Request): Promise<RouterResult | null> {
           },
           reswap(option: string) {
             customHeaders["HX-Reswap"] = option;
-          }
+          },
         };
 
         data = await handler({ req, params, query, body, res });
@@ -169,21 +251,30 @@ export async function router(req: Request): Promise<RouterResult | null> {
         for (const [key, val] of Object.entries(customHeaders)) {
           responseHeaders.set(key, val);
         }
-            if ((data === "" || !data) && req.method === "DELETE") {
+        if ((data === "" || !data) && req.method === "DELETE") {
           return {
-            response: new Response("", { status: statusCode, headers: responseHeaders }),
+            response: new Response("", {
+              status: statusCode,
+              headers: responseHeaders,
+            }),
             includedFiles,
           };
         }
         if (data && typeof data === "string") {
           return {
-            response: new Response(data, { status: statusCode, headers: responseHeaders }),
+            response: new Response(data, {
+              status: statusCode,
+              headers: responseHeaders,
+            }),
             includedFiles,
           };
         }
         if (!data && req.method === "DELETE") {
           return {
-            response: new Response("", { status: statusCode, headers: responseHeaders }),
+            response: new Response("", {
+              status: statusCode,
+              headers: responseHeaders,
+            }),
             includedFiles,
           };
         }
@@ -201,7 +292,6 @@ export async function router(req: Request): Promise<RouterResult | null> {
             pageContent = pageContent.replaceAll(`{{${key}}}`, stringValue);
           }
         }
-
       }
     } catch (err) {
       console.error(`Error running script logic for route ${pathname}:`, err);
@@ -211,12 +301,17 @@ export async function router(req: Request): Promise<RouterResult | null> {
   const finalHtml = await composeHtmlLayout({
     pageContent,
     layoutFilePath,
+    partialLayoutFilePath,
+    isPartialRequest: isHtmxPartialRequest,
+    appPath,
     isRoot,
     dataContext: data || {},
   });
 
   return {
-    response: new Response(finalHtml, { headers: { "Content-Type": "text/html" } }),
+    response: new Response(finalHtml, {
+      headers: { "Content-Type": "text/html" },
+    }),
     includedFiles,
   };
 }
