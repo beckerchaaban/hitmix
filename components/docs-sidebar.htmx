@@ -1,0 +1,19 @@
+<nav class="sticky top-24 max-h-[calc(100vh-7rem)] space-y-1 overflow-y-auto pb-8 pr-4 text-sm">
+  <p class="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">Documentation</p>
+  <a
+    href="/docs"
+    class="block rounded-r-md border-l-2 px-3 py-1.5 transition {{#if is-getting-started}}border-fuchsia-400 bg-white/5 text-zinc-100{{else}}border-transparent text-zinc-400 hover:border-white/20 hover:text-zinc-100{{/if}}"
+  >Getting started</a>
+  <a
+    href="/docs/components"
+    class="block rounded-r-md border-l-2 px-3 py-1.5 transition {{#if is-components}}border-fuchsia-400 bg-white/5 text-zinc-100{{else}}border-transparent text-zinc-400 hover:border-white/20 hover:text-zinc-100{{/if}}"
+  >Components</a>
+  <a
+    href="/docs/guides"
+    class="block rounded-r-md border-l-2 px-3 py-1.5 transition {{#if is-guides}}border-fuchsia-400 bg-white/5 text-zinc-100{{else}}border-transparent text-zinc-400 hover:border-white/20 hover:text-zinc-100{{/if}}"
+  >Guides</a>
+  <a
+    href="/docs/reference"
+    class="block rounded-r-md border-l-2 px-3 py-1.5 transition {{#if is-reference}}border-fuchsia-400 bg-white/5 text-zinc-100{{else}}border-transparent text-zinc-400 hover:border-white/20 hover:text-zinc-100{{/if}}"
+  >Reference</a>
+</nav>

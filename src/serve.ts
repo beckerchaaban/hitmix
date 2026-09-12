@@ -2,7 +2,7 @@ import { router } from "./routing/router";
 
 export interface ServeOptions {
   port?: number;
-  appPath?:string;
+  appPath?: string;
 }
 
 export function serve(options: ServeOptions = {}) {
@@ -25,26 +25,41 @@ export function serve(options: ServeOptions = {}) {
 
       if (url.pathname === "/htmx.js") {
         logRequest(req.method, url.pathname, 200, startTime);
-        return new Response(Bun.file("./node_modules/htmx.org/dist/htmx.min.js"), {
-          headers: { "Content-Type": "application/javascript" },
-        });
+        return new Response(
+          Bun.file("./node_modules/htmx.org/dist/htmx.min.js"),
+          {
+            headers: { "Content-Type": "application/javascript" },
+          },
+        );
       }
 
       try {
-        const routeResult = await router(req);
+        const routeResult = await router(req, options.appPath ?? "app");
 
         if (routeResult) {
           const { response, includedFiles } = routeResult;
-          logRequest(req.method, url.pathname, response.status, startTime, includedFiles);
+          logRequest(
+            req.method,
+            url.pathname,
+            response.status,
+            startTime,
+            includedFiles,
+          );
           return response;
         }
 
         logRequest(req.method, url.pathname, 404, startTime);
-        return new Response("<h3>404 Not Found</h3>", { status: 404, headers: { "Content-Type": "text/html" } });
+        return new Response("<h3>404 Not Found</h3>", {
+          status: 404,
+          headers: { "Content-Type": "text/html" },
+        });
       } catch (error) {
         logRequest(req.method, url.pathname, 500, startTime);
         console.error(`\x1b[31m[ERROR]\x1b[0m`, error);
-        return new Response("<h3>500 Error</h3>", { status: 500, headers: { "Content-Type": "text/html" } });
+        return new Response("<h3>500 Error</h3>", {
+          status: 500,
+          headers: { "Content-Type": "text/html" },
+        });
       }
     },
   });
@@ -53,7 +68,13 @@ export function serve(options: ServeOptions = {}) {
   return server;
 }
 
-function logRequest(method: string, path: string, status: number, startTime: number, includedFiles: string[] = []) {
+function logRequest(
+  method: string,
+  path: string,
+  status: number,
+  startTime: number,
+  includedFiles: string[] = [],
+) {
   const duration = (performance.now() - startTime).toFixed(2);
   const time = new Date().toLocaleTimeString();
 
@@ -70,7 +91,9 @@ function logRequest(method: string, path: string, status: number, startTime: num
   );
 
   if (includedFiles.length > 0) {
-    const fileChain = includedFiles.map((f) => `\x1b[36m${f}\x1b[0m`).join(`${gray} → ${reset}`);
+    const fileChain = includedFiles
+      .map((f) => `\x1b[36m${f}\x1b[0m`)
+      .join(`${gray} → ${reset}`);
     console.log(`   ${gray}└─ Templates:${reset} ${fileChain}`);
   }
 }

@@ -1,0 +1,7 @@
+<button
+  class="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-fuchsia-500/20 transition hover:opacity-90 active:scale-[0.98]"
+  {{#if hx-post}}hx-post="{{hx-post}}"{{/if}}
+  {{#if hx-target}}hx-target="{{hx-target}}"{{/if}}
+  {{#if hx-swap}}hx-swap="{{hx-swap}}"{{/if}}
+  {{#if hx-vals}}hx-vals='{{{hx-vals}}}'{{/if}}
+>{{#if label}}{{label}}{{else}}Click me{{/if}}</button>
