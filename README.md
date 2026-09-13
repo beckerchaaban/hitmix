@@ -1,8 +1,22 @@
 # Hitmix
 
-A tiny Bun + [htmx](https://htmx.org) + Handlebars web framework: file-based routing, `.htmx` page templates, and reusable components via `<import src="..." as="name"/>`.
+A tiny Bun + [htmx](https://htmx.org) + Handlebars web framework for building server-rendered apps with file-based routing, `.htmx` page templates, and reusable components via `<import src="..." as="name"/>`.
 
-## Getting started
+## Quick start
+
+The fastest way to spin up a new project is with [`create-hitmix-app`](https://www.npmjs.com/package/create-hitmix-app), published on npm — it scaffolds everything covered in "Manual setup" below for you:
+
+```bash
+bunx create-hitmix-app my-app
+cd my-app
+bun run dev
+```
+
+Open http://localhost:3000.
+
+## Manual setup
+
+Prefer to wire things up yourself, or add Hitmix to an existing project? Here's what `create-hitmix-app` does under the hood.
 
 ```bash
 mkdir my-app && cd my-app
@@ -60,7 +74,7 @@ serve();
 
 `serve()` wraps `Bun.serve`: it serves static files from `./public`, serves `/htmx.js` from `htmx.org`, routes everything else through the file-based router, and logs requests. Pass `{ port: 4000 }` to change the port (defaults to `3000`).
 
-Then add the app files below, and run:
+Then add the app files below and run:
 
 ```bash
 bun run dev
@@ -165,7 +179,7 @@ bun install
 bun link   # registers this repo as the local `hitmix` package
 ```
 
-Then follow "Getting started" above in a scratch directory, but run `bun add link:hitmix` instead of `bun add hitmix` so `node_modules/hitmix` points at this checkout. Changes to this repo's `src/` are picked up on the next request via `--watch`.
+Then follow "Manual setup" above in a scratch directory, but run `bun add link:hitmix` instead of `bun add hitmix` so `node_modules/hitmix` points at this checkout. Changes to this repo's `src/` are picked up on the next request via `--watch`.
 
 ## Project structure
 

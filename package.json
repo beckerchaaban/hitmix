@@ -1,6 +1,6 @@
 {
   "name": "hitmix",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "type": "module",
   "description": "A tiny Bun + htmx + Handlebars web framework.",
   "keywords": [
